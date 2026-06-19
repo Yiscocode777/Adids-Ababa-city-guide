@@ -4,6 +4,16 @@ import sqlite3
 def ዳታቤዙን_አዘምን():
     ግንኙነት = sqlite3.connect("ከተማ_መረጃ.db")
     ጠቋሚ = ግንኙነት.cursor()
+    # መጀመሪያ ጠረጴዛው ከሌለ እንዲፈጠር እናደርጋለን
+    ጠቋሚ.execute("""
+        CREATE TABLE IF NOT EXISTS ቦታዎች (
+            ስም TEXT PRIMARY KEY,
+            ታሪክ TEXT,
+            ደረጃ TEXT,
+            ምድብ TEXT DEFAULT '🏡 መኖሪያ እና ሌሎች ሰፈሮች',
+            ካርታ TEXT
+        )
+    """)
     try:
         ጠቋሚ.execute("ALTER TABLE ቦታዎች ADD COLUMN ምድብ TEXT DEFAULT '🏡 መኖሪያ እና ሌሎች ሰፈሮች'")
     except: pass
@@ -11,10 +21,12 @@ def ዳታቤዙን_አዘምን():
         ጠቋሚ.execute("ALTER TABLE ቦታዎች ADD COLUMN ካርታ TEXT")
     except: pass
     
+    # ሰረዞቹን አስተካክለናል
     ጠቋሚ.execute("UPDATE ቦታዎች SET ካርታ = 'https://www.google.com/maps/search/?api=1&query=' || ስም || '+Addis+Ababa' WHERE ካርታ IS NULL")
     ግንኙነት.commit()
     ግንኙነት.close()
 
+# አሁን ዳታቤዙ በሰላም ይነሳል
 ዳታቤዙን_አዘምን()
 
 አፕ = Flask(__name__)
@@ -185,8 +197,11 @@ HTML_ዲዛይን = """
 def የቦታ_ስሞችን_በምድብ_አምጣ():
     ግንኙነት = sqlite3.connect("ከተማ_መረጃ.db")
     ጠቋሚ = ግንኙነት.cursor()
-    ጠቋሚ.execute("SELECT ምድብ, ስም FROM ቦታዎች ORDER BY ምድብ, ስም ASC")
-    ውጤቶች = ጠቋሚ.fetchall()
+    try:
+        ጠቋሚ.execute("SELECT ምድብ, ስም FROM ቦታዎች ORDER BY ምድብ, ስም ASC")
+        ውጤቶች = ጠቋሚ.fetchall()
+    except:
+        ውጤቶች = []
     ግንኙነት.close()
     የተደራጀ_መረጃ = {}
     for ምድብ, ስም in ውጤቶች:
@@ -218,16 +233,15 @@ def መነሻ_ገጽ():
             
             ግንኙነት = sqlite3.connect("ከተማ_መረጃ.db")
             ጠቋሚ = ግንኙነት.cursor()
-            ጠቋሚ.execute("INSERT INTO ቦታዎች (ስም, ታሪክ, ደረጃ, ምድብ, ካርታ) VALUES (?, ?, ?, ?, ?)", (ስм, ታሪክ, ደረጃ, ምድብ, ዲፎልት_ካርታ))
+            ጠቋሚ.execute("INSERT INTO ቦታዎች (ስም, ታሪክ, ደረጃ, ምድብ, ካርታ) VALUES (?, ?, ?, ?, ?)", (ስም, ታሪክ, ደረጃ, ምድብ, ዲፎልት_ካርታ))
             ግንኙነት.commit()
             ግንኙነት.close()
             መልዕክት = f"'{ስም}' በተሳካ ሁኔታ በዳታቤዝ ውስጥ ተመዝግቧል!"
 
     ምድቦች = የቦታ_ስሞችን_በምድብ_አምጣ()
-    return render_template_string(HTML_ዲዛይን, ምድቦች=comm, ውጤት=ውጤት, መልዕክት=መልዕክት)
+    return render_template_string(HTML_DESIGN, ምድቦች=ምድቦች, ውጤት=ውጤት, መልዕክት=መልዕክት)
 
 if __name__ == '__main__':
     import os
-    # Render ሰርቨር ላይ በሰላም እንዲነሳ የሚያስችለው ዋናው ማስተካከያ
     ፖርት = int(os.environ.get("PORT", 5000))
     አፕ.run(host='0.0.0.0', port=ፖርት)
