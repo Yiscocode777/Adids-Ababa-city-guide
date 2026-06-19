@@ -1,10 +1,19 @@
 from flask import Flask, request, render_template_string
 import sqlite3
-import webbrowser
 
 def ዳታቤዙን_አዘምን():
     ግንኙነት = sqlite3.connect("ከተማ_መረጃ.db")
     ጠቋሚ = ግንኙነት.cursor()
+    # መጀመሪያ ጠረጴዛው ከሌለ እንዲፈጠር እናደርጋለን
+    ጠቋሚ.execute("""
+        CREATE TABLE IF NOT EXISTS ቦታዎች (
+            ስም TEXT PRIMARY KEY,
+            ታሪክ TEXT,
+            ደረጃ TEXT,
+            ምድብ TEXT DEFAULT '🏡 መኖሪያ እና ሌሎች ሰፈሮች',
+            ካርታ TEXT
+        )
+    """)
     try:
         ጠቋሚ.execute("ALTER TABLE ቦታዎች ADD COLUMN ምድብ TEXT DEFAULT '🏡 መኖሪያ እና ሌሎች ሰፈሮች'")
     except: pass
@@ -12,10 +21,12 @@ def ዳታቤዙን_አዘምን():
         ጠቋሚ.execute("ALTER TABLE ቦታዎች ADD COLUMN ካርታ TEXT")
     except: pass
     
+    # ሰረዞቹን አስተካክለናል
     ጠቋሚ.execute("UPDATE ቦታዎች SET ካርታ = 'https://www.google.com/maps/search/?api=1&query=' || ስም || '+Addis+Ababa' WHERE ካርታ IS NULL")
     ግንኙነት.commit()
     ግንኙነት.close()
 
+# አሁን ዳታቤዙ በሰላም ይነሳል
 ዳታቤዙን_አዘምን()
 
 አፕ = Flask(__name__)
@@ -34,7 +45,6 @@ HTML_ዲዛይን = """
             font-family: 'Noto Sans Ethiopic', sans-serif; 
             margin: 0; 
             min-height: 100vh; 
-            /* የአዲስ አበባን ውብ የከተማ ገጽታ ከጀርባ ለማድረግ የተጠቀመበት ሊንክ */
             background: linear-gradient(rgba(15, 32, 67, 0.7), rgba(15, 32, 67, 0.85)), url('https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?q=80&w=1200&auto=format&fit=crop') no-repeat center center fixed;
             background-size: cover;
             display: flex; 
@@ -43,7 +53,6 @@ HTML_ዲዛይን = """
             padding: 30px 20px;
         }
         
-        /* Glassmorphism ዲዛይን - የመስታወት መልክ የሚሰጥ */
         .container { 
             background: rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(15px);
@@ -58,88 +67,43 @@ HTML_ዲዛይን = """
             box-sizing: border-box;
             margin-bottom: 35px;
             color: #ffffff;
-            animation: topFade 0.8s ease-out;
         }
         
-        .header-icon { font-size: 55px; margin-bottom: 5px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+        .header-icon { font-size: 55px; margin-bottom: 5px; }
         h2 { color: #ffffff; font-size: 28px; margin-bottom: 8px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        p.subtitle { color: #e0e0e0; font-size: 15px; margin-bottom: 30px; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        p.subtitle { color: #e0e0e0; font-size: 15px; margin-bottom: 30px; }
         
         input[type="text"], textarea, select { 
-            font-size: 16px; 
-            padding: 14px 18px; 
-            width: 100%; 
-            border-radius: 14px; 
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-            margin-bottom: 18px;
-            box-sizing: border-box;
-            font-family: inherit;
-            outline: none;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.9);
-            color: #2c3e50;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            font-size: 16px; padding: 14px 18px; width: 100%; border-radius: 14px; 
+            border: 1px solid rgba(255, 255, 255, 0.3); margin-bottom: 18px;
+            box-sizing: border-box; font-family: inherit; outline: none;
+            background: rgba(255, 255, 255, 0.9); color: #2c3e50;
         }
         
-        input:focus, textarea:focus, select:focus { 
-            border-color: #00f2fe; 
-            box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
-            background: #ffffff;
-        }
+        input:focus, textarea:focus, select:focus { border-color: #00f2fe; box-shadow: 0 0 12px rgba(0, 242, 254, 0.5); background: #ffffff; }
         
         .btn { 
-            background: linear-gradient(45deg, #00c6ff, #0072ff); 
-            color: white; 
-            padding: 16px; 
-            border: none; 
-            border-radius: 14px; 
-            cursor: pointer; 
-            font-size: 18px; 
-            font-weight: bold; 
-            width: 100%; 
-            transition: all 0.3s ease;
-            font-family: inherit;
-            box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            background: linear-gradient(45deg, #00c6ff, #0072ff); color: white; padding: 16px; 
+            border: none; border-radius: 14px; cursor: pointer; font-size: 18px; 
+            font-weight: bold; width: 100%; box-shadow: 0 6px 20px rgba(0, 114, 255, 0.4);
         }
         .btn:hover { transform: translateY(-3px); box-shadow: 0px 10px 25px rgba(0, 114, 255, 0.6); }
-        .btn:active { transform: translateY(-1px); }
         
-        .btn-admin { 
-            background: linear-gradient(45deg, #11998e, #38ef7d); 
-            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.3); 
-        }
-        .btn-admin:hover { box-shadow: 0px 10px 25px rgba(56, 239, 125, 0.5); }
-
-        .result { 
-            margin-top: 30px; text-align: left; padding: 25px; border-left: 6px solid #00f2fe; 
-            background: rgba(15, 32, 67, 0.6); border-radius: 16px; animation: fadeIn 0.5s ease-in-out;
-            border: 1px solid rgba(255, 255, 255, 0.1); border-left: 6px solid #00f2fe;
-        }
+        .btn-admin { background: linear-gradient(45deg, #11998e, #38ef7d); box-shadow: 0 6px 20px rgba(56, 239, 125, 0.3); }
+        
+        .result { margin-top: 30px; text-align: left; padding: 25px; border-left: 6px solid #00f2fe; background: rgba(15, 32, 67, 0.6); border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1); }
         .result h3 { margin-top: 0; color: #00f2fe; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; font-size: 22px; }
         .result p { color: #f5f5f5; line-height: 1.8; font-size: 16px;}
         
-        .badge { display: inline-block; background: #f1c40f; color: #2c3e50; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 3px 8px rgba(241, 196, 15, 0.3); }
+        .badge { display: inline-block; background: #f1c40f; color: #2c3e50; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; }
         .category-badge { display: inline-block; background: rgba(0, 242, 254, 0.2); color: #00f2fe; border: 1px solid #00f2fe; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: bold; margin-bottom: 15px; }
-        
-        .maps-btn { 
-            display: inline-flex; align-items: center; justify-content: center; 
-            background: linear-gradient(45deg, #ea4335, #ff6b6b); color: white; 
-            text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; 
-            font-size: 15px; margin-top: 15px; transition: all 0.3s;
-            box-shadow: 0 5px 15px rgba(234, 67, 53, 0.3);
-        }
-        .maps-btn:hover { transform: scale(1.04); box-shadow: 0 8px 20px rgba(234, 67, 53, 0.5); }
+        .maps-btn { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(45deg, #ea4335, #ff6b6b); color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: bold; font-size: 15px; margin-top: 15px; }
         
         .alert { padding: 15px; border-radius: 14px; margin-top: 20px; font-weight: bold; font-size: 15px; text-align: center; }
-        .alert-success { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; backdrop-filter: blur(5px); }
+        .alert-success { background-color: rgba(46, 204, 113, 0.2); color: #2ecc71; border: 1px solid #2ecc71; }
 
-        /* ቆንጆ የተቆልቋይ ግሩፕ ዲዛይን */
         optgroup { font-weight: bold; color: #1e3c72; font-size: 15px; background-color: #f0f4f8;}
         option { font-weight: normal; color: #333; background-color: #fff;}
-
-        @keyframes topFade { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -184,9 +148,7 @@ HTML_ዲዛይን = """
         
         <form method="POST" action="/">
             <input type="hidden" name="ፎርም_አይነት" value="መዝግብ">
-            
             <input type="text" name="አዲስ_ስም" placeholder="የሰፈሩ ስም (ምሳሌ፡ ቦሌ)" required>
-            
             <textarea name="አዲስ_ታሪክ" placeholder="የሰፈሩ ታሪክ ወይም መግለጫ..." rows="3" required></textarea>
             
             <select name="አዲስ_ደረጃ" required>
@@ -217,7 +179,7 @@ HTML_ዲዛይን = """
             var ፊደል = document.getElementById("መፈለጊያ_ሳጥን").value.trim();
             var ምድቦች = document.getElementsByClassName("ምድብ-ግሩፕ");
             for (var i = 0; i < ምድቦች.length; i++) {
-                var ቦታዎች = ም编[i].getElementsByClassName("ቦታ-አማራጭ");
+                var ቦታዎች = ምድቦች[i].getElementsByClassName("ቦታ-አማራጭ");
                 var የሚታይ_ቦታ_አለ = false;
                 for (var j = 0; j < ቦታዎች.length; j++) {
                     if (ቦታዎች[j].text.indexOf(ፊደል) > -1) {
@@ -235,8 +197,11 @@ HTML_ዲዛይን = """
 def የቦታ_ስሞችን_በምድብ_አምጣ():
     ግንኙነት = sqlite3.connect("ከተማ_መረጃ.db")
     ጠቋሚ = ግንኙነት.cursor()
-    ጠቋሚ.execute("SELECT ምድብ, ስም FROM ቦታዎች ORDER BY ምድብ, ስም ASC")
-    ውጤቶች = ጠቋሚ.fetchall()
+    try:
+        ጠቋሚ.execute("SELECT ምድብ, ስም FROM ቦታዎች ORDER BY ምድብ, ስም ASC")
+        ውጤቶች = ጠቋሚ.fetchall()
+    except:
+        ውጤቶች = []
     ግንኙነት.close()
     የተደራጀ_መረጃ = {}
     for ምድብ, ስም in ውጤቶች:
@@ -251,7 +216,6 @@ def መነሻ_ገጽ():
     
     if request.method == 'POST':
         ፎርም_አይነት = request.form.get('ፎርም_አይነት')
-        
         if ፎርም_አይነት == 'ፈልግ':
             የተመረጠው_ቦታ = request.form.get('የተመረጠው_ቦታ')
             if የተመረጠው_ቦታ:
@@ -260,7 +224,6 @@ def መነሻ_ገጽ():
                 ጠቋሚ.execute("SELECT ስም, ታሪክ, ደረጃ, ምድብ, ካርታ FROM ቦታዎች WHERE ስም=?", (የተመረጠው_ቦታ,))
                 ውጤት = ጠቋሚ.fetchone()
                 ግንኙነት.close()
-                
         elif ፎርም_አይነት == 'መዝግብ':
             ስም = request.form.get('አዲስ_ስም')
             ታሪክ = request.form.get('አዲስ_ታሪክ')
@@ -276,8 +239,9 @@ def መነሻ_ገጽ():
             መልዕክት = f"'{ስም}' በተሳካ ሁኔታ በዳታቤዝ ውስጥ ተመዝግቧል!"
 
     ምድቦች = የቦታ_ስሞችን_በምድብ_አምጣ()
-    return render_template_string(HTML_ዲዛይን, ምድቦች=ምድቦች, ውጤት=ውጤት, መልዕክት=መልዕክት)
+    return render_template_string(HTML_DESIGN, ምድቦች=ምድቦች, ውጤት=ውጤት, መልዕክት=መልዕክት)
 
 if __name__ == '__main__':
-    webbrowser.open("http://127.0.0.1:5000")
-    አፕ.run(port=5000)
+    import os
+    ፖርት = int(os.environ.get("PORT", 5000))
+    አፕ.run(host='0.0.0.0', port=ፖርት)
